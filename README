@@ -1,0 +1,27 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=802
+
+An Gramadoir is a command line
+grammar checking engine for 
+minority languages.  It is fully
+implemented for Irish (Gaelic) at the
+moment with some other languages
+in the works.  See
+http://borel.slu.edu/gramadoir/
+for more information.  
+
+This plugin provides a split screen
+interface to the grammar checker,
+with the text you are editing on top
+and a buffer containing the errors
+output by An Gramadoir below.
+
+Pressing <Leader>g once runs
+the grammar checker and opens
+the error buffer.  Each successive
+use of <Leader>g moves the buffers to
+the next error, in parallel.  Syntax 
+highlighting shows the erroneous text 
+in red.  
+
+Pressing <Leader>a stops the grammar
+checker and returns to normal editing.
