@@ -7,6 +7,7 @@
 " Licence:          This program is free software; you can redistribute it
 "                   and/or modify it under the terms of the GNU General Public
 "                   License.  See http://www.gnu.org/copyleft/gpl.txt
+" Version:          0.4.1, 2004-02-08
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 if exists("loaded_gramadoir") || &compatible
    finish
@@ -14,6 +15,8 @@ endif
 let loaded_gramadoir = 1
 let s:active_file = 0
 let s:cpo_save = &cpo
+let s:ignore="${HOME}/.neamhshuim"
+let s:errorwords = ""
 set cpo&vim
 
 function s:Check()
@@ -24,12 +27,12 @@ function s:Check()
     silent execute "w!".l:filename
   endif
   let errorfile = tempname()
-  let l:dummy=system('cat '. escape(l:filename,' \')." | gr --html | sed 's/<br>//g; s/ class=gramadoir//g' > ".escape(errorfile,' \'))
+  let l:dummy=system('cat '. escape(l:filename,' \')." | gr --html --aspell | sed 's/<br>//g; s/ class=gramadoir//g' > ".escape(errorfile,' \'))
   silent exe 'split ' . errorfile
   execute "normal \<C-W>b"
   execute "normal \<C-W>K"
   execute "normal \<C-W>b"
-  execute "normal 6\<C-W>_"
+  execute "normal 7\<C-W>_"
   execute "normal 1G"
   execute "normal \<C-W>t"
   execute "normal 1G"
@@ -49,14 +52,20 @@ function s:NextError()
   let l:linenumber=matchstr(l:currline, "^[1-9][0-9]*")
   let l:boldplustail=strpart(l:currline, l:position-1, strlen(l:currline)-l:position)
   let l:bolderror=matchstr(l:boldplustail, "<b>[^<]*<.b>")
-  let l:errorwords=strpart(l:bolderror, 3, strlen(l:bolderror)-7)
+  let s:errorwords=strpart(l:bolderror, 3, strlen(l:bolderror)-7)
+  let s:errorpattern=substitute(s:errorwords," ",'[ \\t\\n]\\+',"g")
   execute "normal jk0".l:position."l"
   execute "normal ll"
-  execute "syntax match grError /".l:errorwords."/"
+  execute "syntax match grError /".s:errorwords."/"
   execute "normal \<C-W>t"
   execute "normal ".l:linenumber."G"
-  call search(l:errorwords)
-  execute "syntax match grError /".l:errorwords."/"
+  if l:linenumber == "1"
+      execute "normal G$"
+  else
+      execute "normal jkk$"
+  endif
+  call search(s:errorpattern)
+  execute "syntax match grError /".s:errorpattern."/"
   highlight grError cterm=bold ctermfg=Red guifg=Red
 endfunction
 
@@ -64,6 +73,22 @@ function s:QuitGr()
   let s:active_file = 0
   execute "normal \<C-W>b"
   q!
+  execute "syntax enable"
+endfunction
+
+function s:Neamhshuim()
+  if s:errorwords !~ ".* .*"
+     let l:dummy2=system("touch ". s:ignore)
+     let l:dummy3=system("(echo \"0\"; grep -v '[0-9]' ". s:ignore . "; echo \"". s:errorwords ."\") | LC_COLLATE=C sort -u -o ". s:ignore)
+     let l:dummy4=system("sed -i \"1s/.*/`cat ". s:ignore . " | grep -v '^0$' | wc -l | sed 's/^ *//'`/\" ". s:ignore)
+     execute "normal \<C-W>b"
+     execute "normal ma"
+     silent execute "%s/<b>".s:errorwords."<.b>/".s:errorwords."/g"
+     execute "normal `a"
+     execute "normal \<C-W>t"
+     echo "Cuireadh \"". s:errorwords ."\" isteach i ~/.neamhshuim."
+  endif
+  call s:NextError()
 endfunction
 
 if !hasmapto('<Plug>Gr')
@@ -72,11 +97,16 @@ endif
 if !hasmapto('<Plug>Amach')
   map <unique> <Leader>a <Plug>Amach
 endif
+if !hasmapto('<Plug>Neamh')
+  map <unique> <Leader>n <Plug>Neamh
+endif
 
 noremap <unique> <script> <Plug>Gr <SID>NextError
 noremap <silent> <SID>NextError :call <SID>NextError()<CR>
 noremap <unique> <script> <Plug>Amach <SID>QuitGr
 noremap <silent> <SID>QuitGr :call <SID>QuitGr()<CR>
+noremap <unique> <script> <Plug>Neamh <SID>Neamhshuim
+noremap <silent> <SID>Neamhshuim :call <SID>Neamhshuim()<CR>
 
 let &cpo = s:cpo_save
 finish
